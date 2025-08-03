@@ -51,6 +51,32 @@ def create_document(
     return new_document
 
 
+@router.post("/patent/{patent_id}/new-version", response_model=schemas.DocumentRead)
+def create_new_document_version(
+    patent_id: int,
+    document: schemas.DocumentBase,
+    db: Session = Depends(get_db)
+):
+    """Create a new document version for a specific patent"""
+    # Verify the patent entity exists
+    entity = db.get(models.PatentEntity, patent_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"PatentEntity with id {patent_id} does not exist"
+        )
+    
+    # Create new document with the provided content
+    new_document = models.Document(
+        content=document.content,
+        patent_entity_id=patent_id
+    )
+    db.add(new_document)
+    db.commit()
+    db.refresh(new_document)
+    return new_document
+
+
 @router.post("/{document_id}/save")
 def save_document(
     document_id: int, 

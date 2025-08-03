@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from app.internal.db import Base
 
@@ -8,6 +9,7 @@ class Document(Base):
     __tablename__ = "document"
     id = Column(Integer, primary_key=True, index=True)
     content = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
     #F.K
     patent_entity_id = Column(Integer, ForeignKey("patent_entity.id"), nullable=False)
     patent_entity = relationship("PatentEntity", back_populates="documents")

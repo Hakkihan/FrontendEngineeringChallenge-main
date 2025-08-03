@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import {
   usePatents,
   useLatestDocumentByPatent,
+  useAllDocumentsByPatent,
   useSaveDocument,
+  useCreateNewDocumentVersion,
   fetchLatestDocumentByPatent,
   type Document as ApiDocument,
 } from "./lib/api";
@@ -41,7 +43,15 @@ function App() {
     error: docError,
   } = useLatestDocumentByPatent(selectedPatentId);
 
-  // 4) Local draft for editing
+  // 4) Load all documents for the selected patent
+  const {
+    data: allDocuments,
+    isLoading: isAllDocumentsLoading,
+    isError: isAllDocumentsError,
+    error: allDocumentsError,
+  } = useAllDocumentsByPatent(selectedPatentId);
+
+  // 5) Local draft for editing
   const [draft, setDraft] = useState<ApiDocument | null>(null);
 
   // Sync draft when a new document arrives
@@ -50,8 +60,11 @@ function App() {
     else setDraft(null); // no document for this patent
   }, [doc]);
 
-  // 5) Save mutation
+  // 6) Save mutation
   const save = useSaveDocument();
+
+  // 7) Create new document version mutation
+  const createNewVersion = useCreateNewDocumentVersion();
 
   const onSave = () => {
     if (!draft) return;
@@ -65,6 +78,38 @@ function App() {
     });
   };
 
+  const onCreateNewVersion = () => {
+    if (!selectedPatentId) return;
+    
+    // If no draft exists, create a new document with empty content
+    const contentToUse = draft?.content || "";
+    
+    // Confirm with user before creating new version
+    const confirmed = window.confirm(
+      draft 
+        ? "This will create a new document version based on the current content. Continue?"
+        : "This will create a new empty document version. Continue?"
+    );
+    
+    if (!confirmed) return;
+    
+    // Create a new version based on the current draft content
+    createNewVersion.mutate(
+      { 
+        patentId: selectedPatentId, 
+        content: contentToUse
+      },
+      {
+        onSuccess: (newDocument) => {
+          // Set the new document as the current draft
+          setDraft(newDocument);
+          // Show success message
+          alert(`New document version #${newDocument.id} created successfully!`);
+        },
+      }
+    );
+  };
+
   // Optional: prefetch the first document on hover for snappier UX
   const prefetchLatestDoc = (patentId: number | undefined) => {
     if (!patentId) return; // Don't prefetch if patentId is undefined
@@ -74,7 +119,7 @@ function App() {
     });
   };
 
-  const showLoader = isPatentsLoading || isDocLoading || save.isPending;
+  const showLoader = isPatentsLoading || isDocLoading || save.isPending || createNewVersion.isPending;
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -117,8 +162,8 @@ function App() {
         {/* Center: document editor */}
         <main className="flex-1 flex flex-col gap-3 px-4">
           <h2 className="self-start text-[#213547] opacity-60 text-2xl font-semibold">
-            {doc
-              ? `Patent Document #${doc.id}`
+            {draft
+              ? `Patent Document #${draft.id}`
               : selectedPatentId
               ? "No document for this patent yet"
               : "Select a patent"}
@@ -140,18 +185,76 @@ function App() {
           )}
         </main>
 
-        {/* Right: actions */}
-        <aside className="flex flex-col gap-2 px-4 min-w-[180px]">
-          <button
-            onClick={onSave}
-            disabled={!draft || save.isPending}
-            className="px-3 py-2 rounded border"
-          >
-            {save.isPending ? "Saving…" : "Save"}
-          </button>
-          {save.isError && (
-            <p className="text-red-600">{(save.error as Error).message}</p>
-          )}
+        {/* Right: actions and document list */}
+        <aside className="flex flex-col gap-4 px-4 min-w-[240px]">
+          {/* Save button */}
+          <div className="flex flex-col gap-2">
+            <h3 className="font-semibold mb-2">Actions</h3>
+            <button
+              onClick={onSave}
+              disabled={!draft || save.isPending}
+              className="px-3 py-2 rounded border"
+            >
+              {save.isPending ? "Saving…" : "Save"}
+            </button>
+            {save.isError && (
+              <p className="text-red-600">{(save.error as Error).message}</p>
+            )}
+            
+            {/* Create New Version button */}
+            <button
+              onClick={onCreateNewVersion}
+              disabled={!selectedPatentId || createNewVersion.isPending}
+              className="px-3 py-2 rounded border bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500"
+              title="Create a new document version based on the current content"
+            >
+              {createNewVersion.isPending ? "Creating…" : "Create New Version"}
+            </button>
+            {createNewVersion.isError && (
+              <p className="text-red-600">{(createNewVersion.error as Error).message}</p>
+            )}
+          </div>
+
+          {/* Document versions list */}
+          <div className="flex flex-col gap-2">
+            <h3 className="font-semibold mb-2">Document Versions</h3>
+            
+            {isAllDocumentsLoading && (
+              <p className="text-gray-500">Loading documents...</p>
+            )}
+
+            {isAllDocumentsError && (
+              <p className="text-red-600">{(allDocumentsError as Error).message}</p>
+            )}
+
+            {allDocuments && allDocuments.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {allDocuments.map((document) => (
+                  <button
+                    key={document.id}
+                    className={`px-3 py-2 rounded border text-left text-sm ${
+                      draft?.id === document.id ? "bg-blue-100 border-blue-300" : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => {
+                      // Load this specific document version
+                      setDraft(document);
+                    }}
+                    title={`Document #${document.id} - ${document.content.substring(0, 50)}...`}
+                  >
+                    <div className="font-medium">Document #{document.id}</div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {document.content.substring(0, 40)}...
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(document.created_at).toLocaleDateString()}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No documents found</p>
+            )}
+          </div>
         </aside>
       </div>
     </div>

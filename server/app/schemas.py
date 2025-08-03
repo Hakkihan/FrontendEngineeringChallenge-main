@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Literal
+from datetime import datetime
 
 
 class DocumentBase(BaseModel):
@@ -11,6 +12,7 @@ class DocumentRead(DocumentBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    created_at: datetime
 
 from pydantic import BaseModel
 
