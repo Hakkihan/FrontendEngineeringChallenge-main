@@ -1,17 +1,15 @@
 from contextlib import asynccontextmanager
-import re
-
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import insert, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy import insert
 
-from app.internal.ai import AI, get_ai
 from app.internal.data import DOCUMENT_1, DOCUMENT_2
-from app.internal.db import Base, SessionLocal, engine, get_db
+from app.internal.db import Base, SessionLocal, engine
 
 import app.models as models
-import app.schemas as schemas
+
+# Import controllers
+from app.controllers import patent_entity_controller, document_controller, websocket_controller
 
 
 @asynccontextmanager
@@ -37,99 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/document/{document_id}")
-def get_document(
-    document_id: int, db: Session = Depends(get_db)
-) -> schemas.DocumentRead:
-    """Get a document from the database"""
-    return db.scalar(select(models.Document).where(models.Document.id == document_id))
-
-
-
-
-@app.post("/entity", response_model=schemas.EntityWithDocument)
-def create_patent_entity(
-    patent_entity: schemas.PatentEntityBase,
-    db: Session = Depends(get_db)
-):
-    """Create a new PatentEntity in the database"""
-    new_entity = models.PatentEntity(name=patent_entity.name)
-    
-    db.add(new_entity)
-    db.flush()
-    #   create blank document associated with the new patent entity
-    new_document = models.Document(patent_entity_id = new_entity.id, content="Placeholder content")
-    db.add(new_document)
-    db.commit()
-    db.refresh(new_entity)
-    db.refresh(new_document)
-
-    return {
-        "entity": new_entity,
-        "document": new_document 
-    }
-    
-
-
-@app.post("/save/{document_id}")
-def save(
-    document_id: int, 
-    document: schemas.DocumentBase,
-    db: Session = Depends(get_db)
-):
-    entity = db.get(models.PatentEntity, document.patent_entity_id)
-    if(entity) is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"PatentEntity with id {document.patent_entity_id} does not exist"
-        )
-
-    """Save the document to the database"""
-    db.execute(
-        update(models.Document)
-        .where(models.Document.id == document_id)
-        .values(content=document.content, 
-                patent_entity_id = document.patent_entity_id
-            )
-    )
-    db.commit();
-    return {
-        "document_id": document_id,
-        "content": document.content,
-        "patent_entity_id": document.patent_entity_id
-    }
-
-
-
-async def get_suggestions(
-    document: str,
-    ai: AI
-) -> schemas.Suggestions:
-    """ Get AI suggestions for the passed document. """
-    ai_response = ""
-    async for chunk in ai.review_document(document):
-        if chunk is None:
-            break
-        ai_response += chunk
-    return schemas.Suggestions.model_validate_json(ai_response)
-
-
-@app.websocket("/ws")
-async def websocket(websocket: WebSocket, ai: AI = Depends(get_ai)):
-    await websocket.accept()
-    while True:
-        try:
-            request = await websocket.receive_text()
-            parsed_request = schemas.SuggestionsRequest.parse_raw(request)
-            html_text = re.sub(r'<[^>]*>', '', parsed_request.content)
-            suggestions = await get_suggestions(html_text, ai)
-            await websocket.send_json(schemas.SuggestionsResponse(
-                suggestions=suggestions,
-                request_id=parsed_request.request_id
-            ).model_dump())
-        except WebSocketDisconnect:
-            break
-        except Exception as e:
-            print(f"Error occurred: {e}")
-            continue
+# Include routers
+app.include_router(patent_entity_controller.router)
+app.include_router(document_controller.router)
+app.include_router(websocket_controller.router)
