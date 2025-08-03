@@ -15,6 +15,7 @@ import LoadingOverlay from "./internal/LoadingOverlay";
 import Logo from "./assets/logo.png";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader } from "./components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
 
 // Helper function to extract title and body content from HTML
 const extractTitleAndBody = (html: string): { title: string; body: string } => {
@@ -88,6 +89,9 @@ function App() {
 
   // 5) Local draft for editing
   const [draft, setDraft] = useState<ApiDocument | null>(null);
+  
+  // 6) Alert state for new version confirmation
+  const [showNewVersionAlert, setShowNewVersionAlert] = useState(false);
 
   // Sync draft when a new document arrives
   useEffect(() => {
@@ -95,10 +99,10 @@ function App() {
     else setDraft(null); // no document for this patent
   }, [doc]);
 
-  // 6) Save mutation
+  // 7) Save mutation
   const save = useSaveDocument();
 
-  // 7) Create new document version mutation
+  // 8) Create new document version mutation
   const createNewVersion = useCreateNewDocumentVersion();
 
   const onSave = () => {
@@ -115,18 +119,14 @@ function App() {
 
   const onCreateNewVersion = () => {
     if (!selectedPatentId) return;
+    setShowNewVersionAlert(true);
+  };
+
+  const handleConfirmNewVersion = () => {
+    if (!selectedPatentId) return;
     
     // If no draft exists, create a new document with empty content
     const contentToUse = draft?.content || "";
-    
-    // Confirm with user before creating new version
-    const confirmed = window.confirm(
-      draft 
-        ? "This will create a new document version based on the current content. Continue?"
-        : "This will create a new empty document version. Continue?"
-    );
-    
-    if (!confirmed) return;
     
     // Create a new version based on the current draft content
     createNewVersion.mutate(
@@ -138,8 +138,8 @@ function App() {
         onSuccess: (newDocument) => {
           // Set the new document as the current draft
           setDraft(newDocument);
-          // Show success message
-          alert(`New document version #${newDocument.id} created successfully!`);
+          // Close the alert
+          setShowNewVersionAlert(false);
         },
       }
     );
@@ -328,10 +328,43 @@ function App() {
               <p className="text-gray-500 text-sm">No documents found</p>
             )}
           </div>
-        </aside>
-      </div>
-    </div>
-  );
-}
+                 </aside>
+       </div>
+       
+               {/* New Version Confirmation Alert */}
+        {showNewVersionAlert && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+              <Alert>
+                <AlertTitle>Create New Document Version</AlertTitle>
+                <AlertDescription>
+                  {draft 
+                    ? "This will create a new document version based on the current content. Continue?"
+                    : "This will create a new empty document version. Continue?"
+                  }
+                </AlertDescription>
+              </Alert>
+                             <div className="flex gap-3 mt-6 justify-center items-center">
+                 <Button
+                   variant="outline"
+                   onClick={() => setShowNewVersionAlert(false)}
+                   className="min-w-[80px]"
+                 >
+                   Cancel
+                 </Button>
+                 <Button
+                   onClick={handleConfirmNewVersion}
+                   disabled={createNewVersion.isPending}
+                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px]"
+                 >
+                   {createNewVersion.isPending ? "Creating..." : "Create New"}
+                 </Button>
+               </div>
+            </div>
+          </div>
+        )}
+     </div>
+   );
+ }
 
 export default App;
