@@ -14,6 +14,7 @@ import DocumentEditor from "./Document";
 import LoadingOverlay from "./internal/LoadingOverlay";
 import Logo from "./assets/logo.png";
 import { Button } from "./components/ui/button";
+import { Card, CardContent, CardHeader } from "./components/ui/card";
 
 // Helper function to extract title and body content from HTML
 const extractTitleAndBody = (html: string): { title: string; body: string } => {
@@ -264,60 +265,65 @@ function App() {
               <p className="text-red-600">{(allDocumentsError as Error).message}</p>
             )}
 
-            {allDocuments && allDocuments.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {allDocuments.map((document) => (
-                                    <Button
-                    key={document.id}
-                    variant={draft?.id === document.id ? "default" : "outline"}
-                    className={`justify-start w-full text-left text-sm h-32 p-3 overflow-hidden ${
-                      draft?.id === document.id 
-                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg" 
-                        : "hover:bg-accent"
-                    }`}
-                    onClick={() => {
-                      // Load this specific document version
-                      setDraft(document);
-                    }}
-                    title={`Document #${document.id} - ${extractTitleAndBody(document.content).title}`}
-                  >
-                    <div className="flex flex-col items-start w-full h-full space-y-1">
-                      <div className={`font-medium ${draft?.id === document.id ? "text-white" : "text-foreground"}`}>
-                        Document #{document.id}
-                      </div>
-                      {(() => {
-                        const { title, body } = extractTitleAndBody(document.content);
-                        return (
-                          <>
-                            {title && (
-                              <div className={`text-xs font-semibold w-full line-clamp-1 ${
-                                draft?.id === document.id ? "text-white/90" : "text-muted-foreground"
-                              }`}>
-                                {title}
-                              </div>
-                            )}
-                            <div className={`text-xs w-full line-clamp-2 flex-1 ${
-                              draft?.id === document.id ? "text-white/80" : "text-muted-foreground"
-                            }`}>
-                              {body}
-                            </div>
-                          </>
-                        );
-                      })()}
-                      <div className={`text-xs mt-auto ${
-                        draft?.id === document.id ? "text-white/70" : "text-muted-foreground"
-                      }`}>
-                        Created: {new Date(document.created_at).toLocaleString()}
-                      </div>
-                      <div className={`text-xs ${
-                        draft?.id === document.id ? "text-white/70" : "text-muted-foreground"
-                      }`}>
-                        Updated: {new Date(document.updated_at).toLocaleString()}
-                      </div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
+                         {allDocuments && allDocuments.length > 0 ? (
+               <div className="flex flex-col gap-2">
+                 {allDocuments.map((document) => (
+                   <Card
+                     key={document.id}
+                     className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
+                       draft?.id === document.id 
+                         ? "ring-2 ring-green-500 bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg" 
+                         : "hover:bg-accent/50 border-border"
+                     }`}
+                     onClick={() => {
+                       // Load this specific document version
+                       setDraft(document);
+                     }}
+                     title={`Document #${document.id} - ${extractTitleAndBody(document.content).title}`}
+                   >
+                     <CardHeader className="pb-2">
+                       <div className={`font-semibold text-sm ${
+                         draft?.id === document.id ? "text-green-700" : "text-foreground"
+                       }`}>
+                         Document #{document.id}
+                       </div>
+                     </CardHeader>
+                     <CardContent className="pt-0">
+                       {(() => {
+                         const { title, body } = extractTitleAndBody(document.content);
+                         return (
+                           <div className="space-y-2">
+                             {title && (
+                               <div className={`text-xs font-medium line-clamp-1 ${
+                                 draft?.id === document.id ? "text-green-600" : "text-muted-foreground"
+                               }`}>
+                                 {title}
+                               </div>
+                             )}
+                             <div className={`text-xs line-clamp-2 ${
+                               draft?.id === document.id ? "text-green-600/80" : "text-muted-foreground"
+                             }`}>
+                               {body}
+                             </div>
+                             <div className="flex flex-col gap-1 pt-2 border-t border-border/50">
+                               <div className={`text-xs ${
+                                 draft?.id === document.id ? "text-green-600/70" : "text-muted-foreground"
+                               }`}>
+                                 Created: {new Date(document.created_at).toLocaleString()}
+                               </div>
+                               <div className={`text-xs ${
+                                 draft?.id === document.id ? "text-green-600/70" : "text-muted-foreground"
+                               }`}>
+                                 Updated: {new Date(document.updated_at).toLocaleString()}
+                               </div>
+                             </div>
+                           </div>
+                         );
+                       })()}
+                     </CardContent>
+                   </Card>
+                 ))}
+               </div>
             ) : (
               <p className="text-gray-500 text-sm">No documents found</p>
             )}
