@@ -15,6 +15,7 @@ export interface Document {
   patent_entity_id: number;
   content: string;
   created_at: string; // ISO date string from backend
+  updated_at: string; // ISO date string from backend
 }
 
 // API functions

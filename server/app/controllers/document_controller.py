@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update, insert
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.internal.db import get_db
 import app.models as models
@@ -96,7 +97,8 @@ def save_document(
         .where(models.Document.id == document_id)
         .values(
             content=document.content, 
-            patent_entity_id=document.patent_entity_id
+            patent_entity_id=document.patent_entity_id,
+            updated_at=datetime.now(timezone.utc)
         )
     )
     db.commit()

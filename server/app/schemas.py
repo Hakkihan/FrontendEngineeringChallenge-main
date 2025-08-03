@@ -13,6 +13,7 @@ class DocumentRead(DocumentBase):
 
     id: int
     created_at: datetime
+    updated_at: datetime
 
 from pydantic import BaseModel
 
