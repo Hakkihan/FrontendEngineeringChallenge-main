@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import DocumentEditor from "./Document";
 import LoadingOverlay from "./internal/LoadingOverlay";
 import Logo from "./assets/logo.png";
+import { Button } from "./components/ui/button";
 
 // Helper function to extract title and body content from HTML
 const extractTitleAndBody = (html: string): { title: string; body: string } => {
@@ -173,11 +174,10 @@ function App() {
 
           {patents?.map((p) => {
             return (
-              <button
+              <Button
                 key={p.id}
-                className={`px-3 py-2 rounded border text-left ${
-                  selectedPatentId === p.id ? "bg-gray-200" : ""
-                }`}
+                variant={selectedPatentId === p.id ? "default" : "outline"}
+                className="justify-start w-full text-left h-12 p-2 overflow-hidden"
                 onMouseEnter={() => {
                   if (p && p.id && !isPatentsLoading) {
                     prefetchLatestDoc(p.id);
@@ -186,8 +186,10 @@ function App() {
                 onClick={() => setSelectedPatentId(p.id)}
                 title={p.name}
               >
-                {p.name}
-              </button>
+                <div className="w-full line-clamp-2 text-left">
+                  {p.name}
+                </div>
+              </Button>
             );
           })}
         </aside>
@@ -223,26 +225,28 @@ function App() {
           {/* Save button */}
           <div className="flex flex-col gap-2">
             <h3 className="font-semibold mb-2">Actions</h3>
-            <button
+            <Button
               onClick={onSave}
               disabled={!draft || save.isPending}
-              className="px-3 py-2 rounded border"
+              variant="default"
+              className="w-full"
             >
               {save.isPending ? "Saving…" : "Save"}
-            </button>
+            </Button>
             {save.isError && (
               <p className="text-red-600">{(save.error as Error).message}</p>
             )}
             
             {/* Create New Version button */}
-            <button
+            <Button
               onClick={onCreateNewVersion}
               disabled={!selectedPatentId || createNewVersion.isPending}
-              className="px-3 py-2 rounded border bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500"
+              variant="default"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
               title="Create a new document version based on the current content"
             >
               {createNewVersion.isPending ? "Creating…" : "Create New Version"}
-            </button>
+            </Button>
             {createNewVersion.isError && (
               <p className="text-red-600">{(createNewVersion.error as Error).message}</p>
             )}
@@ -263,52 +267,55 @@ function App() {
             {allDocuments && allDocuments.length > 0 ? (
               <div className="flex flex-col gap-1">
                 {allDocuments.map((document) => (
-                  <button
+                                    <Button
                     key={document.id}
-                                                              className={`px-3 py-2 rounded border text-left text-sm transition-colors ${
-                        draft?.id === document.id 
-                          ? "bg-green-500 text-white border-green-600 shadow-md" 
-                          : "hover:bg-gray-50 border-gray-200 bg-white"
-                      }`}
+                    variant={draft?.id === document.id ? "default" : "outline"}
+                    className={`justify-start w-full text-left text-sm h-32 p-3 overflow-hidden ${
+                      draft?.id === document.id 
+                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg" 
+                        : "hover:bg-accent"
+                    }`}
                     onClick={() => {
                       // Load this specific document version
                       setDraft(document);
                     }}
-                                         title={`Document #${document.id} - ${extractTitleAndBody(document.content).title}`}
-                   >
-                                           <div className={`font-medium ${draft?.id === document.id ? "text-white" : "text-gray-900"}`}>
+                    title={`Document #${document.id} - ${extractTitleAndBody(document.content).title}`}
+                  >
+                    <div className="flex flex-col items-start w-full h-full space-y-1">
+                      <div className={`font-medium ${draft?.id === document.id ? "text-white" : "text-foreground"}`}>
                         Document #{document.id}
                       </div>
                       {(() => {
                         const { title, body } = extractTitleAndBody(document.content);
                         return (
                           <>
-                                                         {title && (
-                               <div className={`text-xs font-semibold truncate ${
-                                 draft?.id === document.id ? "text-green-100" : "text-gray-700"
-                               }`}>
-                                 {title}
-                               </div>
-                             )}
-                             <div className={`text-xs line-clamp-2 overflow-hidden ${
-                               draft?.id === document.id ? "text-green-100" : "text-gray-500"
-                             }`}>
-                               {body}
-                             </div>
-                           </>
-                         );
-                       })()}
-                       <div className={`text-xs mt-1 ${
-                         draft?.id === document.id ? "text-green-200" : "text-gray-400"
-                       }`}>
-                         Created: {new Date(document.created_at).toLocaleString()}
-                       </div>
-                       <div className={`text-xs ${
-                         draft?.id === document.id ? "text-green-200" : "text-gray-400"
-                       }`}>
-                         Updated: {new Date(document.updated_at).toLocaleString()}
-                       </div>
-                  </button>
+                            {title && (
+                              <div className={`text-xs font-semibold w-full line-clamp-1 ${
+                                draft?.id === document.id ? "text-white/90" : "text-muted-foreground"
+                              }`}>
+                                {title}
+                              </div>
+                            )}
+                            <div className={`text-xs w-full line-clamp-2 flex-1 ${
+                              draft?.id === document.id ? "text-white/80" : "text-muted-foreground"
+                            }`}>
+                              {body}
+                            </div>
+                          </>
+                        );
+                      })()}
+                      <div className={`text-xs mt-auto ${
+                        draft?.id === document.id ? "text-white/70" : "text-muted-foreground"
+                      }`}>
+                        Created: {new Date(document.created_at).toLocaleString()}
+                      </div>
+                      <div className={`text-xs ${
+                        draft?.id === document.id ? "text-white/70" : "text-muted-foreground"
+                      }`}>
+                        Updated: {new Date(document.updated_at).toLocaleString()}
+                      </div>
+                    </div>
+                  </Button>
                 ))}
               </div>
             ) : (
