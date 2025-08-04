@@ -1,22 +1,14 @@
-// hooks/useApi.ts - React Query hooks
+// hooks/useDocuments.ts - Document-related React Query hooks
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
-  fetchPatents,
   fetchLatestDocumentByPatent,
   fetchAllDocumentsByPatent,
   fetchDocument,
   saveDocument,
   createNewDocumentVersion,
 } from "../lib/api";
-import type { PatentEntity, Document } from "../lib/types";
 
 // Query hooks
-export const usePatents = () =>
-  useQuery({
-    queryKey: ["patents"],
-    queryFn: fetchPatents,
-  });
-
 export const useLatestDocumentByPatent = (patentId: number) =>
   useQuery({
     queryKey: ["latestDocumentByPatent", patentId],

@@ -11,7 +11,8 @@ src/
 │   ├── types.ts           # TypeScript interfaces and types
 │   └── index.ts           # Exports all lib functions and types
 ├── hooks/                  # React Query hooks
-│   ├── useApi.ts          # All React Query hooks
+│   ├── usePatents.ts      # Patent-related hooks
+│   ├── useDocuments.ts    # Document-related hooks
 │   └── index.ts           # Exports all hooks
 ├── utils/                  # Utility helper functions
 │   ├── helper.ts          # Helper utility functions
@@ -46,7 +47,8 @@ src/
 import { fetchPatents, saveDocument } from "./lib";
 
 // Import hooks
-import { usePatents, useSaveDocument } from "./hooks";
+import { usePatents } from "./hooks";
+import { useSaveDocument, useLatestDocumentByPatent } from "./hooks";
 
 // Import utility functions
 import { extractTitleAndBody, getChronologicalNumber } from "./utils";
@@ -67,10 +69,15 @@ import type { PatentEntity, Document } from "./lib";
 - Shared across the application
 - No business logic
 
-### `hooks/useApi.ts`
-- React Query hooks
+### `hooks/usePatents.ts`
+- Patent-related React Query hooks
 - Uses API functions from `lib/api.ts`
-- Handles caching, loading states, and mutations
+- Handles caching, loading states for patent data
+
+### `hooks/useDocuments.ts`
+- Document-related React Query hooks
+- Uses API functions from `lib/api.ts`
+- Handles caching, loading states, and mutations for documents
 
 ### `utils/helper.ts`
 - Utility helper functions

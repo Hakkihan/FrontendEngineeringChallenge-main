@@ -13,15 +13,20 @@ import {
 } from "./lib";
 import { useQueryClient } from "@tanstack/react-query";
 import DocumentEditor from "./Document";
-import LoadingOverlay from "./internal/LoadingOverlay";
 import Logo from "./assets/logo.png";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader } from "./components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
 import { Sidebar } from "./components/ui/sidebar";
-import { extractTitleAndBody, getChronologicalNumber } from "./utils";
+import { extractTitleAndBody, getChronologicalNumber, prefetchQuery } from "./utils";
 
 function App() {
+  // ===== STATE HOOKS =====
+  const [selectedPatentId, setSelectedPatentId] = useState<number>(1);
+  const [draft, setDraft] = useState<ApiDocument | null>(null);
+  const [showNewVersionAlert, setShowNewVersionAlert] = useState(false);
+
+  // ===== TANSTACK QUERY HOOKS =====
   const queryClient = useQueryClient();
 
   // 1) Load list of patents
@@ -32,17 +37,7 @@ function App() {
     error: patentsError,
   } = usePatents();
 
-  // 2) Which patent is selected?
-  const [selectedPatentId, setSelectedPatentId] = useState<number>(1);
-
-  // Auto-select the first patent once they load (if none selected yet)
-  useEffect(() => {
-    if (!selectedPatentId && patents && patents.length > 0) {
-      setSelectedPatentId(patents[0].id);
-    }
-  }, [patents, selectedPatentId]);
-
-  // 3) Load the first document for the selected patent
+  // 2) Load the first document for the selected patent
   const {
     data: doc,
     isLoading: isDocLoading,
@@ -50,7 +45,7 @@ function App() {
     error: docError,
   } = useLatestDocumentByPatent(selectedPatentId);
 
-  // 4) Load all documents for the selected patent
+  // 3) Load all documents for the selected patent
   const {
     data: allDocuments,
     isLoading: isAllDocumentsLoading,
@@ -58,19 +53,19 @@ function App() {
     error: allDocumentsError,
   } = useAllDocumentsByPatent(selectedPatentId);
 
+  // 4) Save mutation
+  const save = useSaveDocument();
 
+  // 5) Create new document version mutation
+  const createNewVersion = useCreateNewDocumentVersion();
 
-  // Get the latest document number for the current draft
-  const getCurrentDocumentNumber = () => {
-    if (!draft || !allDocuments) return 0;
-    return getChronologicalNumber(draft.id, allDocuments);
-  };
-
-  // 5) Local draft for editing
-  const [draft, setDraft] = useState<ApiDocument | null>(null);
-
-  // 6) Alert state for new version confirmation
-  const [showNewVersionAlert, setShowNewVersionAlert] = useState(false);
+  // ===== EFFECTS =====
+  // Auto-select the first patent once they load (if none selected yet)
+  useEffect(() => {
+    if (!selectedPatentId && patents && patents.length > 0) {
+      setSelectedPatentId(patents[0].id);
+    }
+  }, [patents, selectedPatentId]);
 
   // Sync draft when a new document arrives
   useEffect(() => {
@@ -78,11 +73,12 @@ function App() {
     else setDraft(null); // no document for this patent
   }, [doc]);
 
-  // 7) Save mutation
-  const save = useSaveDocument();
-
-  // 8) Create new document version mutation
-  const createNewVersion = useCreateNewDocumentVersion();
+  // ===== FUNCTIONS =====
+  // Get the latest document number for the current draft
+  const getCurrentDocumentNumber = () => {
+    if (!draft || !allDocuments) return 0;
+    return getChronologicalNumber(draft.id, allDocuments);
+  };
 
   const onSave = () => {
     if (!draft) return;
@@ -133,27 +129,27 @@ function App() {
     });
   };
 
+  // ===== JSX =====
   return (
     <div className="flex flex-col h-full w-full">
-
       <header className="flex items-center justify-center top-0 w-full bg-slate-900 text-white text-center z-50 mb-[30px] mt-[8px] h-[80px]">
         <img src={Logo} alt="Logo" style={{ height: "48px" }} />
       </header>
 
-             <div className="flex w-full bg-slate-900 gap-4 justify-center">
+      <div className="flex w-full bg-slate-900 gap-4 justify-center">
         {/* Left: patent list */}
-                 <Sidebar title="Patents" className="px-4 flex-shrink-0">
-           {isPatentsError && (
-             <p className="text-red-600">{(patentsError as Error).message}</p>
-           )}
+        <Sidebar title="Patents" className="px-4 flex-shrink-0">
+          {isPatentsError && (
+            <p className="text-red-600">{(patentsError as Error).message}</p>
+          )}
 
-           {isPatentsLoading && (
-             <div className="flex items-center justify-center py-4">
-               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
-             </div>
-           )}
+          {isPatentsLoading && (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
+            </div>
+          )}
 
-           {patents?.map((p) => {
+          {patents?.map((p) => {
             return (
               <Button
                 key={p.id}
@@ -175,13 +171,13 @@ function App() {
 
         {/* Center: document editor */}
         <main className="flex-1 flex flex-col gap-3 px-4 min-w-0">
-                                <h2 className="self-start text-slate-50 opacity-90 text-2xl font-semibold">
-             {draft
-               ? `Patent Document #${getCurrentDocumentNumber()}`
-               : selectedPatentId
-               ? "No document for this patent yet"
-               : "Select a patent"}
-           </h2>
+          <h2 className="self-start text-slate-50 opacity-90 text-2xl font-semibold">
+            {draft
+              ? `Patent Document #${getCurrentDocumentNumber()}`
+              : selectedPatentId
+              ? "No document for this patent yet"
+              : "Select a patent"}
+          </h2>
 
           {isDocError && (
             <p className="text-red-600">{(docError as Error).message}</p>
@@ -204,42 +200,44 @@ function App() {
           {/* Save button */}
           <div className="flex flex-col gap-2">
             <h3 className="font-semibold mb-2">Actions</h3>
-                         <Button
-               onClick={onSave}
-               disabled={!draft || save.isPending}
-               variant="default"
-               className="w-full relative"
-             >
-               {save.isPending && (
-                 <div className="absolute inset-0 flex items-center justify-center bg-slate-600/50 rounded-md">
-                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                 </div>
-               )}
-               <span className={save.isPending ? "opacity-50" : ""}>
-                 {save.isPending ? "Saving…" : "Save"}
-               </span>
-             </Button>
+            <Button
+              onClick={onSave}
+              disabled={!draft || save.isPending}
+              variant="default"
+              className="w-full relative"
+            >
+              {save.isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-600/50 rounded-md">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                </div>
+              )}
+              <span className={save.isPending ? "opacity-50" : ""}>
+                {save.isPending ? "Saving…" : "Save"}
+              </span>
+            </Button>
             {save.isError && (
               <p className="text-red-600">{(save.error as Error).message}</p>
             )}
 
             {/* Create New Version button */}
-                         <Button
-               onClick={onCreateNewVersion}
-               disabled={!selectedPatentId || createNewVersion.isPending}
-               variant="default"
-               className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 relative"
-               title="Create a new document version based on the current content"
-             >
-               {createNewVersion.isPending && (
-                 <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
-                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                 </div>
-               )}
-               <span className={createNewVersion.isPending ? "opacity-50" : ""}>
-                 {createNewVersion.isPending ? "Creating…" : "Create New Version"}
-               </span>
-             </Button>
+            <Button
+              onClick={onCreateNewVersion}
+              disabled={!selectedPatentId || createNewVersion.isPending}
+              variant="default"
+              className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 relative"
+              title="Create a new document version based on the current content"
+            >
+              {createNewVersion.isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                </div>
+              )}
+              <span className={createNewVersion.isPending ? "opacity-50" : ""}>
+                {createNewVersion.isPending
+                  ? "Creating…"
+                  : "Create New Version"}
+              </span>
+            </Button>
             {createNewVersion.isError && (
               <p className="text-red-600">
                 {(createNewVersion.error as Error).message}
@@ -267,29 +265,31 @@ function App() {
                   <Card
                     key={document.id}
                     className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
-                                             draft?.id === document.id 
-                         ? "ring-2 ring-slate-400 bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 shadow-lg" 
-                         : "hover:bg-accent/50 border-border"
+                      draft?.id === document.id
+                        ? "ring-2 ring-slate-400 bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 shadow-lg"
+                        : "hover:bg-accent/50 border-border"
                     }`}
                     onClick={() => {
                       // Load this specific document version
                       setDraft(document);
                     }}
-                                                              title={`Document #${getChronologicalNumber(document.id, allDocuments)} - ${
-                        extractTitleAndBody(document.content).title
-                      }`}
+                    title={`Document #${getChronologicalNumber(
+                      document.id,
+                      allDocuments
+                    )} - ${extractTitleAndBody(document.content).title}`}
                   >
-                                         <CardHeader className="pb-2">
-                       <div
-                         className={`font-semibold text-sm ${
-                           draft?.id === document.id
-                             ? "text-slate-100"
-                             : "text-foreground"
-                         }`}
-                       >
-                                                   Document #{getChronologicalNumber(document.id, allDocuments)}
-                       </div>
-                     </CardHeader>
+                    <CardHeader className="pb-2">
+                      <div
+                        className={`font-semibold text-sm ${
+                          draft?.id === document.id
+                            ? "text-slate-100"
+                            : "text-foreground"
+                        }`}
+                      >
+                        Document #
+                        {getChronologicalNumber(document.id, allDocuments)}
+                      </div>
+                    </CardHeader>
                     <CardContent className="pt-0">
                       {(() => {
                         const { title, body } = extractTitleAndBody(
@@ -300,9 +300,9 @@ function App() {
                             {title && (
                               <div
                                 className={`text-xs font-medium line-clamp-1 ${
-                                                                   draft?.id === document.id
-                                   ? "text-slate-200"
-                                   : "text-muted-foreground"
+                                  draft?.id === document.id
+                                    ? "text-slate-200"
+                                    : "text-muted-foreground"
                                 }`}
                               >
                                 {title}
@@ -310,9 +310,9 @@ function App() {
                             )}
                             <div
                               className={`text-xs line-clamp-2 ${
-                                                               draft?.id === document.id
-                                 ? "text-slate-200/80"
-                                 : "text-muted-foreground"
+                                draft?.id === document.id
+                                  ? "text-slate-200/80"
+                                  : "text-muted-foreground"
                               }`}
                             >
                               {body}
@@ -355,8 +355,8 @@ function App() {
 
       {/* New Version Confirmation Alert */}
       {showNewVersionAlert && (
-                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-           <div className="bg-slate-800 rounded-lg p-6 max-w-md mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg p-6 max-w-md mx-4">
             <Alert>
               <AlertTitle>Create New Document Version</AlertTitle>
               <AlertDescription>
@@ -373,20 +373,22 @@ function App() {
               >
                 Cancel
               </Button>
-                             <Button
-                 onClick={handleConfirmNewVersion}
-                 disabled={createNewVersion.isPending}
-                 className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px] relative"
-               >
-                 {createNewVersion.isPending && (
-                   <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
-                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                   </div>
-                 )}
-                 <span className={createNewVersion.isPending ? "opacity-50" : ""}>
-                   {createNewVersion.isPending ? "Creating..." : "Create New"}
-                 </span>
-               </Button>
+              <Button
+                onClick={handleConfirmNewVersion}
+                disabled={createNewVersion.isPending}
+                className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px] relative"
+              >
+                {createNewVersion.isPending && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  </div>
+                )}
+                <span
+                  className={createNewVersion.isPending ? "opacity-50" : ""}
+                >
+                  {createNewVersion.isPending ? "Creating..." : "Create New"}
+                </span>
+              </Button>
             </div>
           </div>
         </div>
