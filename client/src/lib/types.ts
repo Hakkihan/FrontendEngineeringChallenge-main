@@ -1,12 +1,14 @@
-type Doc =  {
-    documentId: number,
-    content: string,
-    patent_entity_id: number | undefined
+// lib/types.ts - All TypeScript types and interfaces
+
+export interface PatentEntity {
+  id: number;
+  name: string;
 }
 
-type PatentEntity = {
-    entityId: number,
-    name: string
+export interface Document {
+  id: number;
+  patent_entity_id: number;
+  content: string;
+  created_at: string; // ISO date string from backend
+  updated_at: string; // ISO date string from backend
 }
-
-//import { useMutation, useQuery } from "@tanstack/react-query";

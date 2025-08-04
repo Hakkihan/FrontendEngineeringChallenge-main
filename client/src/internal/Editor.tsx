@@ -31,7 +31,14 @@ export default function Editor({ handleEditorChange, content }: EditorProps) {
   return (
     <>
       {isLoading && <div>Loading...</div>}
-      <EditorContent editor={editor}></EditorContent>
+      <EditorContent 
+        editor={editor} 
+        className="prose prose-slate max-w-none min-h-[400px] p-4"
+        style={{
+          fontFamily: 'Times New Roman, serif',
+          textAlign: 'center'
+        }}
+      />
     </>
   );
 }

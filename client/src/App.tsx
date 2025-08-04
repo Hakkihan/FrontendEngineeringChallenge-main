@@ -6,9 +6,11 @@ import {
   useAllDocumentsByPatent,
   useSaveDocument,
   useCreateNewDocumentVersion,
+} from "./hooks";
+import {
   fetchLatestDocumentByPatent,
   type Document as ApiDocument,
-} from "./lib/api";
+} from "./lib";
 import { useQueryClient } from "@tanstack/react-query";
 import DocumentEditor from "./Document";
 import LoadingOverlay from "./internal/LoadingOverlay";
@@ -16,39 +18,8 @@ import Logo from "./assets/logo.png";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardHeader } from "./components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
-
-// Helper function to extract title and body content from HTML
-const extractTitleAndBody = (html: string): { title: string; body: string } => {
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
-  
-  // Extract title (look for <title> tag or first <h1> or <h2>)
-  let title = '';
-  const titleTag = tempDiv.querySelector('title');
-  const h1Tag = tempDiv.querySelector('h1');
-  const h2Tag = tempDiv.querySelector('h2');
-  
-  if (titleTag) {
-    title = titleTag.textContent || '';
-  } else if (h1Tag) {
-    title = h1Tag.textContent || '';
-  } else if (h2Tag) {
-    title = h2Tag.textContent || '';
-  }
-  
-  // Extract body content (everything except title/headings)
-  let body = '';
-  const bodyTag = tempDiv.querySelector('body');
-  if (bodyTag) {
-    body = bodyTag.textContent || '';
-  } else {
-    // If no body tag, get all text content except title
-    const allText = tempDiv.textContent || '';
-    body = allText.replace(title, '').trim();
-  }
-  
-  return { title, body };
-};
+import { Sidebar } from "./components/ui/sidebar";
+import { extractTitleAndBody, getChronologicalNumber } from "./utils";
 
 function App() {
   const queryClient = useQueryClient();
@@ -87,9 +58,17 @@ function App() {
     error: allDocumentsError,
   } = useAllDocumentsByPatent(selectedPatentId);
 
+
+
+  // Get the latest document number for the current draft
+  const getCurrentDocumentNumber = () => {
+    if (!draft || !allDocuments) return 0;
+    return getChronologicalNumber(draft.id, allDocuments);
+  };
+
   // 5) Local draft for editing
   const [draft, setDraft] = useState<ApiDocument | null>(null);
-  
+
   // 6) Alert state for new version confirmation
   const [showNewVersionAlert, setShowNewVersionAlert] = useState(false);
 
@@ -124,15 +103,15 @@ function App() {
 
   const handleConfirmNewVersion = () => {
     if (!selectedPatentId) return;
-    
+
     // If no draft exists, create a new document with empty content
     const contentToUse = draft?.content || "";
-    
+
     // Create a new version based on the current draft content
     createNewVersion.mutate(
-      { 
-        patentId: selectedPatentId, 
-        content: contentToUse
+      {
+        patentId: selectedPatentId,
+        content: contentToUse,
       },
       {
         onSuccess: (newDocument) => {
@@ -154,26 +133,27 @@ function App() {
     });
   };
 
-  const showLoader = isPatentsLoading || isDocLoading || save.isPending || createNewVersion.isPending;
-
   return (
     <div className="flex flex-col h-full w-full">
-      {showLoader && <LoadingOverlay />}
 
-      <header className="flex items-center justify-center top-0 w-full bg-black text-white text-center z-50 mb-[30px] h-[80px]">
-        <img src={Logo} alt="Logo" style={{ height: "50px" }} />
+      <header className="flex items-center justify-center top-0 w-full bg-slate-900 text-white text-center z-50 mb-[30px] mt-[8px] h-[80px]">
+        <img src={Logo} alt="Logo" style={{ height: "48px" }} />
       </header>
 
-             <div className="flex w-full bg-white gap-4 justify-center">
-         {/* Left: patent list */}
-         <aside className="flex flex-col gap-2 px-4 w-64 flex-shrink-0">
-          <h3 className="font-semibold mb-2">Patents</h3>
+             <div className="flex w-full bg-slate-900 gap-4 justify-center">
+        {/* Left: patent list */}
+                 <Sidebar title="Patents" className="px-4 flex-shrink-0">
+           {isPatentsError && (
+             <p className="text-red-600">{(patentsError as Error).message}</p>
+           )}
 
-          {isPatentsError && (
-            <p className="text-red-600">{(patentsError as Error).message}</p>
-          )}
+           {isPatentsLoading && (
+             <div className="flex items-center justify-center py-4">
+               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
+             </div>
+           )}
 
-          {patents?.map((p) => {
+           {patents?.map((p) => {
             return (
               <Button
                 key={p.id}
@@ -187,23 +167,21 @@ function App() {
                 onClick={() => setSelectedPatentId(p.id)}
                 title={p.name}
               >
-                <div className="w-full line-clamp-2 text-left">
-                  {p.name}
-                </div>
+                <div className="w-full line-clamp-2 text-left">{p.name}</div>
               </Button>
             );
           })}
-        </aside>
+        </Sidebar>
 
-                 {/* Center: document editor */}
-         <main className="flex-1 flex flex-col gap-3 px-4 min-w-0">
-          <h2 className="self-start text-[#213547] opacity-60 text-2xl font-semibold">
-            {draft
-              ? `Patent Document #${draft.id}`
-              : selectedPatentId
-              ? "No document for this patent yet"
-              : "Select a patent"}
-          </h2>
+        {/* Center: document editor */}
+        <main className="flex-1 flex flex-col gap-3 px-4 min-w-0">
+                                <h2 className="self-start text-slate-50 opacity-90 text-2xl font-semibold">
+             {draft
+               ? `Patent Document #${getCurrentDocumentNumber()}`
+               : selectedPatentId
+               ? "No document for this patent yet"
+               : "Select a patent"}
+           </h2>
 
           {isDocError && (
             <p className="text-red-600">{(docError as Error).message}</p>
@@ -221,150 +199,200 @@ function App() {
           )}
         </main>
 
-                 {/* Right: actions and document list */}
-         <aside className="flex flex-col gap-4 px-4 w-64 flex-shrink-0">
+        {/* Right: actions and document list */}
+        <aside className="flex flex-col gap-4 px-4 w-64 flex-shrink-0">
           {/* Save button */}
           <div className="flex flex-col gap-2">
             <h3 className="font-semibold mb-2">Actions</h3>
-            <Button
-              onClick={onSave}
-              disabled={!draft || save.isPending}
-              variant="default"
-              className="w-full"
-            >
-              {save.isPending ? "Saving…" : "Save"}
-            </Button>
+                         <Button
+               onClick={onSave}
+               disabled={!draft || save.isPending}
+               variant="default"
+               className="w-full relative"
+             >
+               {save.isPending && (
+                 <div className="absolute inset-0 flex items-center justify-center bg-slate-600/50 rounded-md">
+                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                 </div>
+               )}
+               <span className={save.isPending ? "opacity-50" : ""}>
+                 {save.isPending ? "Saving…" : "Save"}
+               </span>
+             </Button>
             {save.isError && (
               <p className="text-red-600">{(save.error as Error).message}</p>
             )}
-            
+
             {/* Create New Version button */}
-            <Button
-              onClick={onCreateNewVersion}
-              disabled={!selectedPatentId || createNewVersion.isPending}
-              variant="default"
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-              title="Create a new document version based on the current content"
-            >
-              {createNewVersion.isPending ? "Creating…" : "Create New Version"}
-            </Button>
+                         <Button
+               onClick={onCreateNewVersion}
+               disabled={!selectedPatentId || createNewVersion.isPending}
+               variant="default"
+               className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 relative"
+               title="Create a new document version based on the current content"
+             >
+               {createNewVersion.isPending && (
+                 <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
+                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                 </div>
+               )}
+               <span className={createNewVersion.isPending ? "opacity-50" : ""}>
+                 {createNewVersion.isPending ? "Creating…" : "Create New Version"}
+               </span>
+             </Button>
             {createNewVersion.isError && (
-              <p className="text-red-600">{(createNewVersion.error as Error).message}</p>
+              <p className="text-red-600">
+                {(createNewVersion.error as Error).message}
+              </p>
             )}
           </div>
 
           {/* Document versions list */}
           <div className="flex flex-col gap-2">
             <h3 className="font-semibold mb-2">Document Versions</h3>
-            
+
             {isAllDocumentsLoading && (
-              <p className="text-gray-500">Loading documents...</p>
+              <p className="text-slate-400">Loading documents...</p>
             )}
 
             {isAllDocumentsError && (
-              <p className="text-red-600">{(allDocumentsError as Error).message}</p>
+              <p className="text-red-600">
+                {(allDocumentsError as Error).message}
+              </p>
             )}
 
-                         {allDocuments && allDocuments.length > 0 ? (
-               <div className="flex flex-col gap-2">
-                 {allDocuments.map((document) => (
-                   <Card
-                     key={document.id}
-                     className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
-                       draft?.id === document.id 
-                         ? "ring-2 ring-green-500 bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg" 
+            {allDocuments && allDocuments.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {allDocuments.map((document) => (
+                  <Card
+                    key={document.id}
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${
+                                             draft?.id === document.id 
+                         ? "ring-2 ring-slate-400 bg-gradient-to-br from-slate-700 to-slate-800 border-slate-600 shadow-lg" 
                          : "hover:bg-accent/50 border-border"
-                     }`}
-                     onClick={() => {
-                       // Load this specific document version
-                       setDraft(document);
-                     }}
-                     title={`Document #${document.id} - ${extractTitleAndBody(document.content).title}`}
-                   >
-                     <CardHeader className="pb-2">
-                       <div className={`font-semibold text-sm ${
-                         draft?.id === document.id ? "text-green-700" : "text-foreground"
-                       }`}>
-                         Document #{document.id}
+                    }`}
+                    onClick={() => {
+                      // Load this specific document version
+                      setDraft(document);
+                    }}
+                                                              title={`Document #${getChronologicalNumber(document.id, allDocuments)} - ${
+                        extractTitleAndBody(document.content).title
+                      }`}
+                  >
+                                         <CardHeader className="pb-2">
+                       <div
+                         className={`font-semibold text-sm ${
+                           draft?.id === document.id
+                             ? "text-slate-100"
+                             : "text-foreground"
+                         }`}
+                       >
+                                                   Document #{getChronologicalNumber(document.id, allDocuments)}
                        </div>
                      </CardHeader>
-                     <CardContent className="pt-0">
-                       {(() => {
-                         const { title, body } = extractTitleAndBody(document.content);
-                         return (
-                           <div className="space-y-2">
-                             {title && (
-                               <div className={`text-xs font-medium line-clamp-1 ${
-                                 draft?.id === document.id ? "text-green-600" : "text-muted-foreground"
-                               }`}>
-                                 {title}
-                               </div>
-                             )}
-                             <div className={`text-xs line-clamp-2 ${
-                               draft?.id === document.id ? "text-green-600/80" : "text-muted-foreground"
-                             }`}>
-                               {body}
-                             </div>
-                             <div className="flex flex-col gap-1 pt-2 border-t border-border/50">
-                               <div className={`text-xs ${
-                                 draft?.id === document.id ? "text-green-600/70" : "text-muted-foreground"
-                               }`}>
-                                 Created: {new Date(document.created_at).toLocaleString()}
-                               </div>
-                               <div className={`text-xs ${
-                                 draft?.id === document.id ? "text-green-600/70" : "text-muted-foreground"
-                               }`}>
-                                 Updated: {new Date(document.updated_at).toLocaleString()}
-                               </div>
-                             </div>
-                           </div>
-                         );
-                       })()}
-                     </CardContent>
-                   </Card>
-                 ))}
-               </div>
+                    <CardContent className="pt-0">
+                      {(() => {
+                        const { title, body } = extractTitleAndBody(
+                          document.content
+                        );
+                        return (
+                          <div className="space-y-2">
+                            {title && (
+                              <div
+                                className={`text-xs font-medium line-clamp-1 ${
+                                                                   draft?.id === document.id
+                                   ? "text-slate-200"
+                                   : "text-muted-foreground"
+                                }`}
+                              >
+                                {title}
+                              </div>
+                            )}
+                            <div
+                              className={`text-xs line-clamp-2 ${
+                                                               draft?.id === document.id
+                                 ? "text-slate-200/80"
+                                 : "text-muted-foreground"
+                              }`}
+                            >
+                              {body}
+                            </div>
+                            <div className="flex flex-col gap-1 pt-2 border-t border-border/50">
+                              <div
+                                className={`text-xs ${
+                                  draft?.id === document.id
+                                    ? "text-slate-200/70"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                Created:{" "}
+                                {new Date(document.created_at).toLocaleString()}
+                              </div>
+                              <div
+                                className={`text-xs ${
+                                  draft?.id === document.id
+                                    ? "text-slate-200/70"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                Updated:{" "}
+                                {new Date(document.updated_at).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
-              <p className="text-gray-500 text-sm">No documents found</p>
+              <p className="text-slate-400 text-sm">No documents found</p>
             )}
           </div>
-                 </aside>
-       </div>
-       
-               {/* New Version Confirmation Alert */}
-        {showNewVersionAlert && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <Alert>
-                <AlertTitle>Create New Document Version</AlertTitle>
-                <AlertDescription>
-                  {draft 
-                    ? "This will create a new document version based on the current content. Continue?"
-                    : "This will create a new empty document version. Continue?"
-                  }
-                </AlertDescription>
-              </Alert>
-                             <div className="flex gap-3 mt-6 justify-center items-center">
-                 <Button
-                   variant="outline"
-                   onClick={() => setShowNewVersionAlert(false)}
-                   className="min-w-[80px]"
-                 >
-                   Cancel
-                 </Button>
-                 <Button
-                   onClick={handleConfirmNewVersion}
-                   disabled={createNewVersion.isPending}
-                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px]"
-                 >
+        </aside>
+      </div>
+
+      {/* New Version Confirmation Alert */}
+      {showNewVersionAlert && (
+                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+           <div className="bg-slate-800 rounded-lg p-6 max-w-md mx-4">
+            <Alert>
+              <AlertTitle>Create New Document Version</AlertTitle>
+              <AlertDescription>
+                {draft
+                  ? "This will create a new document version based on the current content. Continue?"
+                  : "This will create a new empty document version. Continue?"}
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-3 mt-6 justify-center items-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowNewVersionAlert(false)}
+                className="min-w-[80px]"
+              >
+                Cancel
+              </Button>
+                             <Button
+                 onClick={handleConfirmNewVersion}
+                 disabled={createNewVersion.isPending}
+                 className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[140px] relative"
+               >
+                 {createNewVersion.isPending && (
+                   <div className="absolute inset-0 flex items-center justify-center bg-slate-700/50 rounded-md">
+                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                   </div>
+                 )}
+                 <span className={createNewVersion.isPending ? "opacity-50" : ""}>
                    {createNewVersion.isPending ? "Creating..." : "Create New"}
-                 </Button>
-               </div>
+                 </span>
+               </Button>
             </div>
           </div>
-        )}
-     </div>
-   );
- }
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default App;
