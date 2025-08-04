@@ -18,6 +18,11 @@ src/
 │   ├── helper.ts          # Helper utility functions
 │   └── index.ts           # Exports all utility functions
 ├── components/             # UI components
+│   ├── ui/               # Shadcn UI components
+│   ├── NewVersionAlert.tsx    # New version confirmation modal
+│   ├── ActionsPanel.tsx       # Document action buttons
+│   ├── DocumentVersionsList.tsx # Document versions list
+│   └── PatentSidebar.tsx      # Patent selection sidebar
 ├── internal/              # Internal components
 └── App.tsx               # Main application component
 ```
