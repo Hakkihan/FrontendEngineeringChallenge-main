@@ -50,10 +50,55 @@ Enjoy!
 
 
 ----------------------------------------------------------------------------------------
-My approach to the FrontendEngineeringChallenge-main
 
-Initial startup: I used docker-compose as per the guidance of the instructions to have the frontend and backend running.
+## My Approach to the FrontendEngineeringChallenge-main
 
-1.) Seeing as there is one table called "Documents" on startup with content, I will build upon that by adding another table called "PatentEntity" . PatentEntity will be the core product that is of interest and Documents will be treated as the version instances with a ForeignKey associated with the core product of interest.
+### Initial Setup
+I used docker-compose as per the guidance of the instructions to have the frontend and backend running.
 
-2.)
+### Task 1: Document Versioning Implementation
+
+I implemented document versioning by adding a `PatentEntity` table on the server side and establishing a foreign key relationship between documents and patent entities. This approach treats `PatentEntity` as the core product of interest, while `Documents` serve as version instances with a foreign key association to the core product.
+
+**Server-side changes:**
+- Added `PatentEntity` model with appropriate fields
+- Created foreign key relationship between `Document` and `PatentEntity` models
+- Modified API endpoints to handle the new relationship structure
+
+**Frontend modifications:**
+- Updated the client-side code to accommodate the new data structure
+- Added UI components to manage patent entities and their associated document versions
+
+### Task 2: Real-Time AI Suggestions
+
+I implemented the WebSocket functionality to enable real-time AI suggestions with the following features:
+
+- **Debounced input handling**: 1-second lag after typing stops to avoid excessive API calls
+- **Timeout protection**: 10-second timeout to prevent hanging connections
+- **Background processing**: AI suggestions are generated without impacting user experience at the bottom of the page
+- **Real-time updates**: Suggestions are delivered through the WebSocket connection
+
+The implementation ensures that users receive helpful AI-generated suggestions while maintaining a smooth, uninterrupted editing experience.
+
+### Task 3: Frontend Enhancements
+
+I refactored the codebase and implemented several UI/UX improvements:
+
+**Design System:**
+- Integrated shadcn components for consistent UI patterns
+- Applied a modern slate-theme color palette throughout the application
+- Enhanced overall visual consistency and professional appearance
+
+**New Features:**
+- **Collapsible sidebar**: Added collapsible action panel for better space utilization
+- **Document save tracking**: Implemented tracking of document save times for better user awareness
+- **Logo enhancement**: Added a small 'surprise' element to the logo for a touch of personality
+
+**Code Quality:**
+- Refactored existing code for better maintainability and organization
+- One very small styling change in `internal/Editor.tsx` to enhance the look and feel (I am happy to remove this if you wish! It was just a one liner about font-style)
+- Improved component structure and separation of concerns
+
+I also added some tests where I expedited the process with some AI assistance. 
+
+The enhancements focus on providing a professional, user-friendly experience while maintaining the core functionality of the patent reviewing application.
