@@ -21,7 +21,7 @@ async def lifespan(_: FastAPI):
     with SessionLocal() as db:
         db.execute(insert(models.PatentEntity).values(id=1, name="Wireless optogenetic device for remotely controlling neural activitiies"))
         db.execute(insert(models.PatentEntity).values(id=2, name="Microfluidic Device for Blood Oxygenation"))
-        db.execute(insert(models.PatentEntity).values(id=3, name="Microfluidic Device for Blood Oxygenation continued"))
+        # db.execute(insert(models.PatentEntity).values(id=3, name="A different patent of a Microfluidic Device for Blood Oxygenation"))
         db.execute(insert(models.Document).values(id=1, patent_entity_id=1, content=DOCUMENT_1, created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc)))
         db.execute(insert(models.Document).values(id=2, patent_entity_id=2, content=DOCUMENT_2, created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc)))
         db.commit()

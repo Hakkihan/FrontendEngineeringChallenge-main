@@ -1,5 +1,5 @@
 // components/AIStatusPanel.tsx - AI Status Indicators
-import type { AIAnalysisState } from "../lib/types/ai";
+import type { AIAnalysisState } from "../lib/types";
 
 interface AIStatusPanelProps {
   state: AIAnalysisState;

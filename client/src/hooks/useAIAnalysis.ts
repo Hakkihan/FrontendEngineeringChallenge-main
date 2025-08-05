@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useWebSocket from "react-use-websocket";
 import { debounce } from "lodash";
-import type { Suggestions, SuggestionsResponse, AIAnalysisState } from "../lib/types/ai";
+import type { Suggestions, SuggestionsResponse, AIAnalysisState } from "../lib/types";
 
 const SOCKET_URL = "ws://localhost:8000/ws";
 

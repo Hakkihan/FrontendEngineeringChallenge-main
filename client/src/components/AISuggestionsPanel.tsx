@@ -1,5 +1,5 @@
 // components/AISuggestionsPanel.tsx - AI Suggestions Display
-import type { Suggestions } from "../lib/types/ai";
+import type { Suggestions } from "../lib/types";
 
 interface AISuggestionsPanelProps {
   suggestions: Suggestions;

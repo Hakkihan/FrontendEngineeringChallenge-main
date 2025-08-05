@@ -8,8 +8,8 @@ This project follows a clean separation of concerns with the following structure
 src/
 ├── lib/                    # Pure API functions and types
 │   ├── api.ts             # API functions (HTTP calls)
-│   ├── types.ts           # TypeScript interfaces and types
-│   ├── types/ai.ts        # AI-related TypeScript interfaces
+│   ├── types/             # TypeScript interfaces and types
+│   │   └── index.ts       # All application and AI types
 │   └── index.ts           # Exports all lib functions and types
 ├── hooks/                  # React Query hooks
 │   ├── usePatents.ts      # Patent-related hooks
@@ -73,8 +73,8 @@ import type { PatentEntity, Document } from "./lib";
 - No React dependencies
 - Can be used in any JavaScript/TypeScript context
 
-### `lib/types.ts`
-- All TypeScript interfaces and types
+### `lib/types/index.ts`
+- All TypeScript interfaces and types (application + AI)
 - Shared across the application
 - No business logic
 
