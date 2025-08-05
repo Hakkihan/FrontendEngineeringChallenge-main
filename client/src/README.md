@@ -9,10 +9,12 @@ src/
 ├── lib/                    # Pure API functions and types
 │   ├── api.ts             # API functions (HTTP calls)
 │   ├── types.ts           # TypeScript interfaces and types
+│   ├── types/ai.ts        # AI-related TypeScript interfaces
 │   └── index.ts           # Exports all lib functions and types
 ├── hooks/                  # React Query hooks
 │   ├── usePatents.ts      # Patent-related hooks
 │   ├── useDocuments.ts    # Document-related hooks
+│   ├── useAIAnalysis.ts   # AI analysis WebSocket logic
 │   └── index.ts           # Exports all hooks
 ├── utils/                  # Utility helper functions
 │   ├── helper.ts          # Helper utility functions
@@ -22,7 +24,9 @@ src/
 │   ├── NewVersionAlert.tsx    # New version confirmation modal
 │   ├── ActionsPanel.tsx       # Document action buttons
 │   ├── DocumentVersionsList.tsx # Document versions list
-│   └── PatentSidebar.tsx      # Patent selection sidebar
+│   ├── PatentSidebar.tsx      # Patent selection sidebar
+│   ├── AIStatusPanel.tsx      # AI connection/analysis status
+│   └── AISuggestionsPanel.tsx # AI suggestions display
 ├── internal/              # Internal components
 └── App.tsx               # Main application component
 ```
@@ -83,6 +87,11 @@ import type { PatentEntity, Document } from "./lib";
 - Document-related React Query hooks
 - Uses API functions from `lib/api.ts`
 - Handles caching, loading states, and mutations for documents
+
+### `hooks/useAIAnalysis.ts`
+- AI analysis WebSocket logic and state management
+- Handles real-time AI suggestions and connection status
+- Manages timeouts, debouncing, and error handling
 
 ### `utils/helper.ts`
 - Utility helper functions

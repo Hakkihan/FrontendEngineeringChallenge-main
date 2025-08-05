@@ -235,3 +235,37 @@ button:hover {
   font-family: 'Times New Roman', serif !important;
   text-align: center !important;
 }
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #334155;
+}
+
+/* Logo rotation animation */
+.logo-rotate {
+  transition: transform 0.6s ease-in-out;
+}
+
+.logo-rotate:hover {
+  transform: rotate(360deg);
+}

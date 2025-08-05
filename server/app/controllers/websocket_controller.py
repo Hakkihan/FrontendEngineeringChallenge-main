@@ -55,7 +55,7 @@ import app.schemas as schemas
 
 router = APIRouter(tags=["websocket"])
 
-TIMEOUT_SECONDS = 5.0  # server-side cap per request
+TIMEOUT_SECONDS = 10.0  # server-side cap per request
 
 async def collect_ai_review(document: str, ai: AI) -> str:
     """Collect streaming AI review into a single JSON string."""

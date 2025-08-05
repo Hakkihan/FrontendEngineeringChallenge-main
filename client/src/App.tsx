@@ -133,7 +133,7 @@ function App() {
   return (
     <div className="flex flex-col h-full w-full">
       <header className="flex items-center justify-center top-0 w-full bg-slate-900 text-white text-center z-50 mb-[30px] mt-[8px] h-[80px]">
-        <img src={Logo} alt="Logo" style={{ height: "48px" }} />
+        <img src={Logo} alt="Logo" style={{ height: "48px" }} className="logo-rotate" />
       </header>
 
       <div className="flex w-full bg-slate-900 gap-4 justify-center">

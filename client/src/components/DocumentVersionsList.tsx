@@ -35,7 +35,7 @@ export function DocumentVersionsList({
       )}
 
       {documents && documents.length > 0 ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar p-2">
           {documents.map((document) => (
             <Card
               key={document.id}
