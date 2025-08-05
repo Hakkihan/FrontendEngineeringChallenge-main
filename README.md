@@ -71,7 +71,7 @@ I implemented document versioning by adding a `PatentEntity` table on the server
 
 ### Task 2: Real-Time AI Suggestions
 
-I implemented the WebSocket functionality to enable real-time AI suggestions with the following features:
+I implemented the WebSocket functionality to enable real-time AI suggestions, underneath the Document editor, with the following features:
 
 - **Debounced input handling**: 1-second lag after typing stops to avoid excessive API calls
 - **Timeout protection**: 10-second timeout to prevent hanging connections
