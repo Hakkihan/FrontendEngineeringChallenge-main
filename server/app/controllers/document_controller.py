@@ -85,6 +85,11 @@ def save_document(
     db: Session = Depends(get_db)
 ):
     """Save/update a document"""
+    # Check if document exists
+    existing_doc = db.scalar(select(models.Document).where(models.Document.id == document_id))
+    if existing_doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
     entity = db.get(models.PatentEntity, document.patent_entity_id)
     if entity is None:
         raise HTTPException(

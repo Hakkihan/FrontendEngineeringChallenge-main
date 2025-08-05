@@ -7,7 +7,7 @@ DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=False,  # You can set this to True to see the SQL queries made by SQLAlchemy
+    echo=False,
     poolclass=StaticPool,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

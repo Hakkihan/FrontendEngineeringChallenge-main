@@ -1,6 +1,25 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Literal
 from datetime import datetime
+
+
+class DocumentBase(BaseModel):
+    content: str
+    patent_entity_id: int 
+
+
+class DocumentRead(DocumentBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentUpdate(BaseModel):
+    documentId: int
+    content: str
+    patent_entity_id: int
 
 
 class DocumentBase(BaseModel):
@@ -20,11 +39,11 @@ from pydantic import BaseModel
 class DocumentUpdate(BaseModel):
     documentId: int
     content: str
-    patent_entity_id: int  # Remove `| None` if it's mandatory
+    patent_entity_id: int
 
 
 class PatentEntityBase(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, description="Patent entity name cannot be empty")
 
 class PatentEntityRead(PatentEntityBase):
     id: int
@@ -36,9 +55,6 @@ class EntityWithDocument(BaseModel):
     entity: PatentEntityRead
     document: DocumentRead
 
-###############################################################################
-# Suggestions
-###############################################################################
 
 class SuggestionIssue(BaseModel):
     type: str
